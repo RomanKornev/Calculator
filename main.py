@@ -57,7 +57,7 @@ def calculate(query):
         formatted = format_result(result)
         results.append(json_wox(formatted,
                                 '{} = {}'.format(query, result),
-                                'Images/app.ico',
+                                'icons/app.png',
                                 'change_query',
                                 [str(result)],
                                 True))
@@ -79,7 +79,7 @@ def calculate(query):
             method_help = method_eval.__doc__.split('\n')[0] if method_eval.__doc__ else ''
             results.append(json_wox(method,
                                     method_help,
-                                    'Images/app.ico',
+                                    'icons/app.png',
                                     'change_query_method',
                                     [str(method)],
                                     True))

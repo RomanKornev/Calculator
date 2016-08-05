@@ -60,7 +60,7 @@ def format_result(result):
 def calculate(query):
     results = []
     # filter any special characters at start or end
-    query = re.sub(r'(^[+\-*/=])|([+\-*/=(]$)', '', query)
+    query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
     try:
         result = eval(query)
         formatted = format_result(result)

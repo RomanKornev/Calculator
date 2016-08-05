@@ -6,6 +6,7 @@ import re
 try:
     from scipy.special import *
     from builtins import *
+    import numpy as np
 
     c = binom
 except Exception as e:
@@ -43,7 +44,15 @@ def format_result(result):
         else:
             return '{:,}'.format(round(float(result), 5)).replace(',', ' ')
     elif hasattr(result, '__iter__'):
-        return '[' + ', '.join(list(map(format_result, list(result)))) + ']'
+        try:
+            return '[' + ', '.join(list(map(format_result, list(result)))) + ']'
+        except TypeError:
+            # check if ndarray
+            result = result.flatten()
+            if len(result) > 1:
+                return '[' + ', '.join(list(map(format_result, result.flatten()))) + ']'
+            else:
+                return format_result(np.asscalar(result))
     else:
         return str(result)
 

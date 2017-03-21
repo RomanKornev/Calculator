@@ -2,6 +2,7 @@
 
 from math import *
 import re
+import os
 
 try:
     from scipy.special import *
@@ -31,6 +32,9 @@ def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep
         })
     return json
 
+def copy_to_clipboard(text):
+    cmd = 'echo ' + text.strip() + '| clip'
+    os.system(cmd)
 
 def format_result(result):
     if hasattr(result, '__call__'):
@@ -105,7 +109,9 @@ class Calculator(Wox):
         return calculate(query)
 
     def change_query(self, query):
+        # change query and copy to clipboard after pressing enter
         WoxAPI.change_query(query)
+        copy_to_clipboard(query)
 
     def change_query_method(self, query):
         WoxAPI.change_query(query + '(')

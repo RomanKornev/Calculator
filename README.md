@@ -11,6 +11,7 @@ Supported features:
 - Thousands separator
 - List formatting
 - Input filtering
+- Copy to clipboard after pressing Enter
 
 ***Protip***: use ```=``` sign to filter any unneccesary results:
 

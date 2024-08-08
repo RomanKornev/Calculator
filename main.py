@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from math import *
+from math import * 
 import re
-import os
 
 try:
-    from scipy.special import *
-    from builtins import *
+    import pyperclip
+except:
+    pyperclip = None
+    import os
+
+try:
     import numpy as np
+    from builtins import *
+    from scipy.special import *
 
     c = binom
-except Exception as e:
+except:
     pass
 
 sqr = lambda x: x ** 2
@@ -33,8 +38,12 @@ def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep
     return json
 
 def copy_to_clipboard(text):
-    cmd = 'echo ' + text.strip() + '| clip'
-    os.system(cmd)
+    if pyperclip is not None:
+        pyperclip.copy(text)
+    else:
+        # Workaround
+        cmd = 'echo ' + text.strip() + '| clip'
+        os.system(cmd)
 
 def format_result(result):
     if hasattr(result, '__call__'):

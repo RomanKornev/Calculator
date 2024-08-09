@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from math import * 
-from builtins import *
 import re
 import os
 
@@ -20,6 +19,8 @@ try:
     c = binom
 except:
     pass
+
+from builtins import *  # Required for division scipy, also allows for pow to be used with modulus
     
 sqr = lambda x: x ** 2
 

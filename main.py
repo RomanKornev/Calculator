@@ -12,11 +12,16 @@ except:
 try:
     import numpy as np
     from builtins import *
+except:
+    pass
+
+try:
     from scipy.special import *
 
     c = binom
 except:
     pass
+    
 
 sqr = lambda x: x ** 2
 

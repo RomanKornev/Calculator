@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from math import * 
+from math import *
 import re
 import os
 
@@ -91,11 +91,34 @@ def format_result(result):
     else:
         return str(result)
 
+  
+def handle_factorials(query):
+    # Replace simple factorial
+    query = re.sub(r'(\b-?\d+\.?\d*([eE][-+]?\d+)?\b)!',
+                   lambda match: f'factorial({match.group(1)})', query)
 
+    i = 2
+    while i < len(query):
+        if query[i] == "!" and query[i-1] == ")":
+            j = i-1
+            bracket_count = 1
+            while bracket_count != 0 and j > 0:
+                j -= 1
+                if query[j] == ")":
+                    bracket_count += 1
+                elif query[j] == "(":
+                    bracket_count -= 1
+            query = query[:j] + f'factorial({query[j+1:i-1]})' +\
+                    (query[i+1:] if i+1 < len(query) else "")
+            i += 8  # 8 is the difference between factorial(...) and (...)!
+        i += 1
+    return query
+    
 def calculate(query):
     results = []
     # filter any special characters at start or end
     query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
+    query = handle_factorials(query)
     try:
         result = eval(query)
         formatted = format_result(result)

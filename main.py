@@ -1,29 +1,37 @@
 # -*- coding: utf-8 -*-
 
 from math import * 
+from builtins import *
 import re
+import os
 
 try:
     import pyperclip
 except:
     pyperclip = None
-    import os
 
 try:
     import numpy as np
-    from builtins import *
 except:
     pass
 
 try:
     from scipy.special import *
-
     c = binom
 except:
     pass
     
-
 sqr = lambda x: x ** 2
+
+x = 0
+
+xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
+if os.path.exists(xFilePath):
+    try:
+        with open(xFilePath, "r") as xFile:
+            x = int(xFile.read())
+    except:
+        pass
 
 
 def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
@@ -49,6 +57,14 @@ def copy_to_clipboard(text):
         # Workaround
         cmd = 'echo ' + text.strip() + '| clip'
         os.system(cmd)
+
+def write_to_x(result):
+    x = result
+    try:
+        with open(xFilePath, "w") as xFile:
+            xFile.write(result)
+    except:
+        pass
 
 def format_result(result):
     if hasattr(result, '__call__'):
@@ -125,6 +141,7 @@ class Calculator(Wox):
     def change_query(self, query):
         # change query and copy to clipboard after pressing enter
         WoxAPI.change_query(query)
+        write_to_x(query)
         copy_to_clipboard(query)
 
     def change_query_method(self, query):

@@ -94,7 +94,7 @@ def format_result(result):
   
 def handle_factorials(query):
     # Replace simple factorial
-    query = re.sub(r'(\b(\d+\.?\d*([eE][-+]?\d+)?\b)!',
+    query = re.sub(r'(\b\d+\.?\d*([eE][-+]?\d+)?\b)!',
                    lambda match: f'factorial({match.group(1)})', query)
 
     i = 2
@@ -120,7 +120,6 @@ def handle_pow_xor(query):
 def handle_implied_multiplication(query):
     return re.sub(r'((?:\.\d+|\b\d+\.\d*|\b\d+)(?:[eE][-+]?\d+)?)\s*(x|pi)\b',
                   r'(\1*\2)', query)
-
 
     
 def calculate(query):

@@ -94,7 +94,7 @@ def format_result(result):
   
 def handle_factorials(query):
     # Replace simple factorial
-    query = re.sub(r'(\b-?\d+\.?\d*([eE][-+]?\d+)?\b)!',
+    query = re.sub(r'(\b(\d+\.?\d*([eE][-+]?\d+)?\b)!',
                    lambda match: f'factorial({match.group(1)})', query)
 
     i = 2
@@ -113,12 +113,23 @@ def handle_factorials(query):
             i += 8  # 8 is the difference between factorial(...) and (...)!
         i += 1
     return query
+
+def handle_pow_xor(query):
+    return query.replace("^", "**").replace("xor", "^")
+
+def handle_implied_multiplication(query):
+    return re.sub(r'((?:\.\d+|\b\d+\.\d*|\b\d+)(?:[eE][-+]?\d+)?)\s*(x|pi)\b',
+                  r'(\1*\2)', query)
+
+
     
 def calculate(query):
     results = []
     # filter any special characters at start or end
     query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
     query = handle_factorials(query)
+    query = handle_pow_xor(query)
+    query = handle_implied_multiplication(query)
     try:
         result = eval(query)
         formatted = format_result(result)

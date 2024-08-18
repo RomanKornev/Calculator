@@ -1,7 +1,7 @@
 # Calculator
 Advanced calculator plugin for [Wox](http://www.getwox.com/).
 
-Uses fuctions from ```math``` module and ```scipy.special``` (if installed).
+Uses functions from ```math``` module and ```scipy.special``` (if installed).
 
 ![Calculator](http://i.imgur.com/nUztl4X.png)
 

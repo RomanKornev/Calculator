@@ -5,15 +5,34 @@ import re
 import os
 
 try:
-    from scipy.special import *
-    from builtins import *
-    import numpy as np
+    import pyperclip
+except:
+    pyperclip = None
 
-    c = binom
-except Exception as e:
+try:
+    import numpy as np
+except:
     pass
 
+try:
+    from scipy.special import *
+    c = binom
+except:
+    pass
+
+from builtins import *  # Required for division scipy, also allows for pow to be used with modulus
+    
 sqr = lambda x: x ** 2
+
+x = 0
+
+xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
+if os.path.exists(xFilePath):
+    try:
+        with open(xFilePath, "r") as xFile:
+            x = int(xFile.read())
+    except:
+        pass
 
 
 def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
@@ -33,8 +52,20 @@ def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep
     return json
 
 def copy_to_clipboard(text):
-    cmd = 'echo ' + text.strip() + '| clip'
-    os.system(cmd)
+    if pyperclip is not None:
+        pyperclip.copy(text)
+    else:
+        # Workaround
+        cmd = 'echo ' + text.strip() + '| clip'
+        os.system(cmd)
+
+def write_to_x(result):
+    x = result
+    try:
+        with open(xFilePath, "w") as xFile:
+            xFile.write(result)
+    except:
+        pass
 
 def format_result(result):
     if hasattr(result, '__call__'):
@@ -60,11 +91,44 @@ def format_result(result):
     else:
         return str(result)
 
+  
+def handle_factorials(query):
+    # Replace simple factorial
+    query = re.sub(r'(\b\d+\.?\d*([eE][-+]?\d+)?\b)!',
+                   lambda match: f'factorial({match.group(1)})', query)
 
+    i = 2
+    while i < len(query):
+        if query[i] == "!" and query[i-1] == ")":
+            j = i-1
+            bracket_count = 1
+            while bracket_count != 0 and j > 0:
+                j -= 1
+                if query[j] == ")":
+                    bracket_count += 1
+                elif query[j] == "(":
+                    bracket_count -= 1
+            query = query[:j] + f'factorial({query[j+1:i-1]})' +\
+                    (query[i+1:] if i+1 < len(query) else "")
+            i += 8  # 8 is the difference between factorial(...) and (...)!
+        i += 1
+    return query
+
+def handle_pow_xor(query):
+    return query.replace("^", "**").replace("xor", "^")
+
+def handle_implied_multiplication(query):
+    return re.sub(r'((?:\.\d+|\b\d+\.\d*|\b\d+)(?:[eE][-+]?\d+)?)\s*(x|pi)\b',
+                  r'(\1*\2)', query)
+
+    
 def calculate(query):
     results = []
     # filter any special characters at start or end
     query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
+    query = handle_factorials(query)
+    query = handle_pow_xor(query)
+    query = handle_implied_multiplication(query)
     try:
         result = eval(query)
         formatted = format_result(result)
@@ -111,6 +175,7 @@ class Calculator(Wox):
     def change_query(self, query):
         # change query and copy to clipboard after pressing enter
         WoxAPI.change_query(query)
+        write_to_x(query)
         copy_to_clipboard(query)
 
     def change_query_method(self, query):

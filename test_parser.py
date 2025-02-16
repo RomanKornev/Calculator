@@ -22,13 +22,14 @@ class TestMathExpressionParser(unittest.TestCase):
         self.assertEqual(str(Parser("-(2 + 3) - (2 + 2)").parse()), "(-(2.0 + 3.0) - (2.0 + 2.0))")
 
     def test_exponentiation(self):
-        self.assertEqual(str(Parser("2 ^ 3").parse()), "(2.0 ^ 3.0)")
+        self.assertEqual(str(Parser("2 ^ 3").parse()), "(2.0**3.0)")
 
     def test_factorial(self):
         self.assertEqual(str(Parser("5!").parse()), "factorial(5.0)")
 
     def test_custom_operator(self):
-        self.assertEqual(str(Parser("3 || 4").parse()), "(3.0 || 4.0)")
+        self.assertEqual(str(Parser("3 || 4").parse()), "(3.0*4.0/(4.0+3.0))")
+        self.assertEqual(str(Parser("3 || 4 || 5").parse()), "(3.0*4.0*5.0/(4.0*5.0+3.0*5.0+3.0*4.0))")
 
     def test_constants(self):
         self.assertEqual(str(Parser("pi").parse()), str(float(math.pi)))
@@ -46,7 +47,7 @@ class TestMathExpressionParser(unittest.TestCase):
     def test_complex_expression(self):
         expr = "sin(2 * pi * 4k)! + 3M + 5 || 6"
         parsed = str(Parser(expr).parse())
-        expected = "(factorial(sin(2.0 * 3.141592653589793 * 4000.0)) + 3000000.0 + (5.0 || 6.0))"
+        expected = "(factorial(sin(2.0 * 3.141592653589793 * 4000.0)) + 3000000.0 + (5.0*6.0/(6.0+5.0)))"
         self.assertEqual(parsed, expected)
 
 

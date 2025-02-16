@@ -17,6 +17,13 @@ class Node:
                 return self.op + arg_str.replace(' , ', ', ')  # These are functions
             else:
                 return f"{self.op}({arg_str})"
+        if self.op == "||":
+            den = '*'.join(f"{p}" for p in self.operands)
+            div = '+'.join('*'.join(f'{q}' for q in self.operands if q != p) for p in self.operands)
+            out = f"({den}/({div}))"
+            return out
+        if self.op == "^" and len(self.operands) == 2:
+            return "({0}**{1})".format(*self.operands)
         return f"({f' {self.op} '.join(map(str, self.operands))})"
 
 
@@ -124,6 +131,12 @@ class Parser:
     def get_precedence(self, op):
         precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "||": 2, "^": 3, "!": 4}  # Factorial has high precedence
         return precedences.get(op, 0)
+
+
+def evaluate(equation: str, environment: dict = None) -> float:
+    parser = Parser(equation)
+    ast = parser.parse()
+    return eval(str(ast), environment)
 
 
 if __name__ == "__main__":

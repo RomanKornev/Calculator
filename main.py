@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import sys
 from math import *
 import re
 import os
+import traceback
 
 try:
     import pyperclip
@@ -21,10 +21,10 @@ except:
     pass
 
 from builtins import *  # Required for division scipy, also allows for pow to be used with modulus
-    
+import math_parser
+
 sqr = lambda f: f ** 2
 sqrt = sqr
-py_version = sys.version_info.major + sys.version_info.minor/10
 
 x = None
 
@@ -34,8 +34,9 @@ if pyperclip is not None:
     except ValueError:
         pass
 
+xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
+
 if x is None:
-    xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
     if os.path.exists(xFilePath):
         try:
             with open(xFilePath, "r") as xFile:
@@ -197,10 +198,16 @@ def calculate(query):
                                 True))
 
         try:
-            v = float(result)
-        except ValueError or TypeError:
-            v = None
-        if v is not None:
+            v = math_parser.evaluate(query, {'x': x})
+        except Exception as err:
+            err_text = traceback.format_exc()
+            results.append(json_wox(f"Error: {type(err)}",
+                                    err_text,
+                                    'icons/app.png',
+                                    'change_query',
+                                    err_text,
+                                    True))
+        else:
             results.append(json_wox(to_eng(v),
                                     '{} = {}'.format(query, to_eng(result)),
                                     'icons/app.png',
@@ -214,8 +221,13 @@ def calculate(query):
         if opening_par > closing_par:
             return calculate(query + ')'*(opening_par-closing_par))
         else:
-            # let Wox keep previous result
-            raise SyntaxError
+            err_text = traceback.format_exc()
+            results.append(json_wox(f"Error: {type(err)}",
+                                    err_text,
+                                    'icons/app.png',
+                                    'change_query',
+                                    err_text,
+                                    True))
     except NameError:
         # try to find docstrings for methods similar to query
         glob = set(filter(lambda x: 'Error' not in x and 'Warning' not in x and '_' not in x, globals()))
@@ -241,6 +253,9 @@ from wox import Wox, WoxAPI
 class Calculator(Wox):
     def query(self, query):
         return calculate(query)
+
+    def context_menu(self, data):
+        return ["Teste", 555]
 
     def change_query(self, query):
         # change query and copy to clipboard after pressing enter

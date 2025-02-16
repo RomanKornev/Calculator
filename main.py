@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 from math import *
 import re
 import os
@@ -22,17 +22,26 @@ except:
 
 from builtins import *  # Required for division scipy, also allows for pow to be used with modulus
     
-sqr = lambda x: x ** 2
+sqr = lambda f: f ** 2
+sqrt = sqr
+py_version = sys.version_info.major + sys.version_info.minor/10
 
-x = 0
+x = None
 
-xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
-if os.path.exists(xFilePath):
+if pyperclip is not None:
     try:
-        with open(xFilePath, "r") as xFile:
-            x = int(xFile.read())
-    except:
+        x = float(pyperclip.paste())
+    except ValueError:
         pass
+
+if x is None:
+    xFilePath = os.environ['TMP'] + os.sep + "wox_pycalc_x.txt"
+    if os.path.exists(xFilePath):
+        try:
+            with open(xFilePath, "r") as xFile:
+                x = float(xFile.read())
+        except:
+            x = 0
 
 
 def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
@@ -51,6 +60,7 @@ def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep
         })
     return json
 
+
 def copy_to_clipboard(text):
     if pyperclip is not None:
         pyperclip.copy(text)
@@ -59,6 +69,7 @@ def copy_to_clipboard(text):
         cmd = 'echo ' + text.strip() + '| clip'
         os.system(cmd)
 
+
 def write_to_x(result):
     x = result
     try:
@@ -66,6 +77,24 @@ def write_to_x(result):
             xFile.write(result)
     except:
         pass
+
+
+def to_eng(value):
+    e = floor(log(abs(value), 1000))
+    if -5 <= e < 0:
+        suffix = "fpnum"[e]
+    elif e == 0:
+        suffix = ''
+    elif e == 1:
+        suffix = "k"
+    elif e == 2:
+        suffix = 'Meg'
+    elif e == 3:
+        suffix = 'Giga'
+    else:
+        return '{:E}'.format(value)
+    return '{:g}{:}'.format(value * 1000**-e, suffix)
+
 
 def format_result(result):
     if hasattr(result, '__call__'):
@@ -88,6 +117,8 @@ def format_result(result):
                 return '[' + ', '.join(list(map(format_result, result.flatten()))) + ']'
             else:
                 return format_result(np.asscalar(result))
+    elif isinstance(result, bool):
+        return 'True' if result else 'False'
     else:
         return str(result)
 
@@ -121,6 +152,31 @@ def handle_implied_multiplication(query):
     return re.sub(r'((?:\.\d+|\b\d+\.\d*|\b\d+)(?:[eE][-+]?\d+)?)\s*(x|pi)\b',
                   r'(\1*\2)', query)
 
+def handle_engineering_notation(query):
+    rgx = re.compile(r'\d([fpnumkMG])')
+    E = {
+        'f': 'e-15',
+        'p': 'e-12',
+        'n': 'e-9',
+        'u': 'e-6',
+        'm': 'e-3',
+        'k': 'e+3',
+        'M': 'e+6',
+        'G': 'e+9',
+    }
+    aux = ''
+    start = 0
+    for m in rgx.finditer(query):
+        try:  # This is needed to avoid that a number is after a unit qualifier
+            skip = query[m.end(1)] in '0123456789'
+        except IndexError:
+            skip = False
+        if not skip:
+            aux += query[start:m.start(1)] + E[m.group(1)]
+            start = m.end(1)
+    aux += query[start:]
+    return aux
+
     
 def calculate(query):
     results = []
@@ -128,6 +184,7 @@ def calculate(query):
     query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
     query = handle_factorials(query)
     query = handle_pow_xor(query)
+    query = handle_engineering_notation(query)
     query = handle_implied_multiplication(query)
     try:
         result = eval(query)
@@ -138,6 +195,18 @@ def calculate(query):
                                 'change_query',
                                 [str(result)],
                                 True))
+
+        try:
+            v = float(result)
+        except ValueError or TypeError:
+            v = None
+        if v is not None:
+            results.append(json_wox(to_eng(v),
+                                    '{} = {}'.format(query, to_eng(result)),
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
     except SyntaxError:
         # try to close parentheses
         opening_par = query.count('(')
@@ -165,6 +234,7 @@ def calculate(query):
             raise NameError
     return results
 
+
 from wox import Wox, WoxAPI
 
 
@@ -180,6 +250,11 @@ class Calculator(Wox):
 
     def change_query_method(self, query):
         WoxAPI.change_query(query + '(')
+
+    def store_result(self, query, result):
+        WoxAPI.change_query(query)
+        write_to_x(result)
+        copy_to_clipboard(result)
 
 
 if __name__ == '__main__':

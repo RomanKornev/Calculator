@@ -1,18 +1,17 @@
 import re
 import math
-from typing import Union
+from typing import Union, List
 
 
 class Node:
-    def __init__(self, op: str, left: Union['Node', float, str], right: Union['Node', float, None] = None):
+    def __init__(self, op: str, operands: List[Union['Node', float, str]]):
         self.op = op
-        self.left = left
-        self.right = right
+        self.operands = operands
 
     def __repr__(self):
-        if self.right is None:
-            return f"{self.op}({self.left})"
-        return f"({self.left} {self.op} {self.right})"
+        if len(self.operands) == 1:
+            return f"{self.op}({self.operands[0]})"
+        return f"({f' {self.op} '.join(map(str, self.operands))})"
 
 
 class Parser:
@@ -27,45 +26,52 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'\d+\.\d+|\d+|[a-zA-Z]+|\|?[+\-*/^()|,!]?', expr)
+        tokens = re.findall(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|\|\||//|[+\-*/^()|,!]', expr)
         processed_tokens = []
-        for t in tokens:
+        for i, t in enumerate(tokens):
             if t in {"+", "-", "*", "/", "^", "(", ")", "||", ",", "!"}:
                 processed_tokens.append(t)
             elif t in self.CONSTANTS:
                 processed_tokens.append(self.CONSTANTS[t])
-            elif re.match(r'\d+[fpnumkMGT]$', t):
+                if i > 0 and isinstance(processed_tokens[-2], float):
+                    processed_tokens.insert(-1, "*")
+            elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]$', t):
                 value, prefix = float(t[:-1]), t[-1]
                 processed_tokens.append(value * self.ENGINEERING_PREFIXES[prefix])
-            elif re.match(r'\d+', t):
+            elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?$', t):
                 processed_tokens.append(float(t))
             else:
                 processed_tokens.append(t)
+                if i > 0 and isinstance(processed_tokens[-2], float):
+                    processed_tokens.insert(-1, "*")
         return processed_tokens
 
     def parse(self):
         return self.parse_expression()
 
     def parse_expression(self, min_precedence=0):
-        left = self.parse_primary()
+        operands = [self.parse_primary()]
 
         while self.index < len(self.tokens):
             op = self.tokens[self.index]
             precedence = self.get_precedence(op)
 
-            if precedence < min_precedence:
+            if precedence < min_precedence or op == ')':
                 break
 
             if op == "!":  # Factorial operator (unary)
                 self.index += 1
-                left = Node("!", left)
+                operands = [Node("!", operands)]
                 continue
 
             self.index += 1
-            right = self.parse_expression(precedence + 1)
-            left = Node(op, left, right)
+            operands.append(self.parse_expression(precedence + 1))
 
-        return left
+            # Group same-precedence operators together
+            if len(operands) > 1 and all(isinstance(o, Node) and o.op == op for o in operands[:-1]):
+                operands = operands[:-1] + operands[-1].operands
+
+        return Node(op, operands) if len(operands) > 1 else operands[0]
 
     def parse_primary(self):
         token = self.tokens[self.index]
@@ -83,9 +89,12 @@ class Parser:
         if isinstance(token, str) and self.index + 1 < len(self.tokens) and self.tokens[self.index + 1] == "(":
             function_name = token
             self.index += 2  # Consume function name and '('
-            argument = self.parse_expression()
+            arguments = [self.parse_expression(0)]
+            while self.index < len(self.tokens) and self.tokens[self.index] == ",":
+                self.index += 1
+                arguments.append(self.parse_expression())
             self.index += 1  # Consume ')'
-            return Node(function_name, argument)
+            return Node(function_name, arguments)
 
         self.index += 1
         return token
@@ -95,10 +104,8 @@ class Parser:
         return precedences.get(op, 0)
 
 
-if __name__ == "__main__":
-
-    # Example Usage
-    expr = "sin(2 * pi * 4k)! + 3M || 6"
-    parser = Parser(expr)
-    ast = parser.parse()
-    print(ast)
+# Example Usage
+expr = "sin(2 * pi * 4k)! + 3M + 5 || 6"
+parser = Parser(expr)
+ast = parser.parse()
+print(ast)

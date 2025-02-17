@@ -115,7 +115,7 @@ def calculate(query):
     except Exception as err:
         err_text = traceback.format_exc()
         results.append(json_wox(f"Error: {type(err)}",
-                                "err_text",
+                                err_text,
                                 'icons/app.png',
                                 'change_query',
                                 [err_text],

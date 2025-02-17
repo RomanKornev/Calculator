@@ -20,6 +20,7 @@ class TestMathExpressionParser(unittest.TestCase):
         self.assertEqual(str(Parser("-(2 + 3) * 4").parse()), "(-(2 + 3) * 4)")
         self.assertEqual(str(Parser("-(2 + 3) + 4").parse()), "(-(2 + 3) + 4)")
         self.assertEqual(str(Parser("-(2 + 3) - (2 + 2)").parse()), "(-(2 + 3) - (2 + 2))")
+        self.assertEqual(str(Parser("234*1+12").parse()), "((234 * 1) + 12)")
 
     def test_exponentiation(self):
         self.assertEqual(str(Parser("2 ^ 3").parse()), "(2**3)")

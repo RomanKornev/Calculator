@@ -73,8 +73,7 @@ class Parser:
         while self.index < len(self.tokens):
             op = self.tokens[self.index]
             if op not in self.OPERATORS:
-                current_op = '*'
-                precedence = self.get_precedence(current_op)
+                op = '*'
                 operands.append(op)
             else:
                 if op == "!":  # Factorial operator (unary)
@@ -82,12 +81,19 @@ class Parser:
                     operands[-1] = Node("factorial", [operands[-1]])
                     continue
 
-                if current_op is None:
-                    current_op = op
-                precedence = self.get_precedence(op)
+            precedence = self.get_precedence(op)
+            if precedence < min_precedence or op == ")":
+                break
 
-                if precedence < min_precedence or op == ")" or op != current_op:
-                    break
+            if current_op is None:
+                current_op = op
+            elif op != current_op:
+                if precedence <= self.get_precedence(current_op):
+                    # close this node
+                    operands = [Node(current_op, operands)]
+                    current_op = op
+                else:
+                    raise NotImplemented  # This should not be possible. Just a safe guard.
 
             self.index += 1
             if self.index < len(self.tokens):

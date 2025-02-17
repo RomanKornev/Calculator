@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from math import *
-import re
 import os
 import traceback
 
@@ -9,22 +7,8 @@ try:
 except:
     pyperclip = None
 
-try:
-    import numpy as np
-except:
-    pass
-
-try:
-    from scipy.special import *
-    c = binom
-except:
-    pass
-
-from builtins import *  # Required for division scipy, also allows for pow to be used with modulus
 import math_parser
-
-sqr = lambda f: f ** 2
-sqrt = sqr
+from math import floor, log
 
 x = None
 
@@ -123,62 +107,7 @@ def format_result(result):
     else:
         return str(result)
 
-  
-def handle_factorials(query):
-    # Replace simple factorial
-    query = re.sub(r'(\b\d+\.?\d*([eE][-+]?\d+)?\b)!',
-                   lambda match: f'factorial({match.group(1)})', query)
 
-    i = 2
-    while i < len(query):
-        if query[i] == "!" and query[i-1] == ")":
-            j = i-1
-            bracket_count = 1
-            while bracket_count != 0 and j > 0:
-                j -= 1
-                if query[j] == ")":
-                    bracket_count += 1
-                elif query[j] == "(":
-                    bracket_count -= 1
-            query = query[:j] + f'factorial({query[j+1:i-1]})' +\
-                    (query[i+1:] if i+1 < len(query) else "")
-            i += 8  # 8 is the difference between factorial(...) and (...)!
-        i += 1
-    return query
-
-def handle_pow_xor(query):
-    return query.replace("^", "**").replace("xor", "^")
-
-def handle_implied_multiplication(query):
-    return re.sub(r'((?:\.\d+|\b\d+\.\d*|\b\d+)(?:[eE][-+]?\d+)?)\s*(x|pi)\b',
-                  r'(\1*\2)', query)
-
-def handle_engineering_notation(query):
-    rgx = re.compile(r'\d([fpnumkMG])')
-    E = {
-        'f': 'e-15',
-        'p': 'e-12',
-        'n': 'e-9',
-        'u': 'e-6',
-        'm': 'e-3',
-        'k': 'e+3',
-        'M': 'e+6',
-        'G': 'e+9',
-    }
-    aux = ''
-    start = 0
-    for m in rgx.finditer(query):
-        try:  # This is needed to avoid that a number is after a unit qualifier
-            skip = query[m.end(1)] in '0123456789'
-        except IndexError:
-            skip = False
-        if not skip:
-            aux += query[start:m.start(1)] + E[m.group(1)]
-            start = m.end(1)
-    aux += query[start:]
-    return aux
-
-    
 def calculate(query):
     results = []
     try:

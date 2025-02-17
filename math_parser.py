@@ -17,7 +17,7 @@ class Node:
                 return self.op + arg_str.replace(' , ', ', ')  # These are functions
             else:
                 return f"{self.op}({arg_str})"
-        if self.op == "||":
+        if self.op == "//":
             den = '*'.join(f"{p}" for p in self.operands)
             div = '+'.join('*'.join(f'{q}' for q in self.operands if q != p) for p in self.operands)
             out = f"({den}/({div}))"
@@ -33,7 +33,7 @@ class Parser:
         'k': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12
     }
     CONSTANTS = {'e': math.e, 'pi': math.pi}
-    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", "||", "|", ",", "!", "&"}
+    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "//"}
     FUNCTIONS = {'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'cotg': lambda x: math.cos(x)/math.sin(x),
                  'asin': math.asin, 'acos': math.acos, 'atan': math.atan,
                  'sinh': math.sinh, 'cosh': math.cosh, 'tanh': math.tanh,
@@ -47,7 +47,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|\|\||//|[+\-*/^()|,!]', expr)
+        tokens = re.findall(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:
@@ -129,7 +129,7 @@ class Parser:
         return token
 
     def get_precedence(self, op):
-        precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "||": 2, "^": 3, "!": 4}  # Factorial has high precedence
+        precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "//": 2, "^": 3, "!": 4}  # Factorial has high precedence
         return precedences.get(op, 0)
 
 

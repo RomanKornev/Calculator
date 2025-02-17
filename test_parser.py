@@ -28,8 +28,8 @@ class TestMathExpressionParser(unittest.TestCase):
         self.assertEqual(str(Parser("5!").parse()), "factorial(5)")
 
     def test_custom_operator(self):
-        self.assertEqual(str(Parser("3 || 4").parse()), "(3*4/(4+3))")
-        self.assertEqual(str(Parser("3 || 4 || 5").parse()), "(3*4*5/(4*5+3*5+3*4))")
+        self.assertEqual(str(Parser("3 // 4").parse()), "(3*4/(4+3))")
+        self.assertEqual(str(Parser("3 // 4 // 5").parse()), "(3*4*5/(4*5+3*5+3*4))")
 
     def test_constants(self):
         self.assertEqual(str(Parser("pi").parse()), str(float(math.pi)))
@@ -45,14 +45,14 @@ class TestMathExpressionParser(unittest.TestCase):
         self.assertAlmostEqual(float(Parser("3.4n").parse()), 3.4e-09, 9)
 
     def test_complex_expression(self):
-        expr = "sin(2 * pi * 4k)! + 3M + 5 || 6"
+        expr = "sin(2 * pi * 4k)! + 3M + 5 // 6"
         parsed = str(Parser(expr).parse())
         expected = "(factorial(sin(2 * 3.141592653589793 * 4000.0)) + 3000000.0 + (5*6/(6+5)))"
         self.assertEqual(parsed, expected)
 
     def test_parallels(self):
-        self.assertEqual("(45*34/(34+45))", str(Parser("45||34").parse()))
-        self.assertEqual("(45*34*12/(34*12+45*12+45*34))", str(Parser("45||34||12").parse()))
+        self.assertEqual("(45*34/(34+45))", str(Parser("45//34").parse()))
+        self.assertEqual("(45*34*12/(34*12+45*12+45*34))", str(Parser("45//34//12").parse()))
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ class Parser:
         'k': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12
     }
     CONSTANTS = {'e': math.e, 'pi': math.pi}
-    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", "||", ",", "!"}
+    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", "||", "|", ",", "!", "&"}
     FUNCTIONS = {'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'cotg': lambda x: math.cos(x)/math.sin(x),
                  'asin': math.asin, 'acos': math.acos, 'atan': math.atan,
                  'sinh': math.sinh, 'cosh': math.cosh, 'tanh': math.tanh,
@@ -58,7 +58,7 @@ class Parser:
                 value, prefix = float(t[:-1]), t[-1]
                 processed_tokens.append(value * self.ENGINEERING_PREFIXES[prefix])
             elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?$', t):
-                processed_tokens.append(float(t))
+                processed_tokens.append(t)
             else:
                 processed_tokens.append(t)
         return processed_tokens
@@ -136,7 +136,10 @@ class Parser:
 def evaluate(equation: str, environment: dict = None) -> float:
     parser = Parser(equation)
     ast = parser.parse()
-    return eval(str(ast), environment)
+    env = {}
+    env.update(Parser.FUNCTIONS)
+    env.update(environment)
+    return eval(str(ast), env)
 
 
 if __name__ == "__main__":

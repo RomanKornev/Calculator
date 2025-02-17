@@ -181,69 +181,23 @@ def handle_engineering_notation(query):
     
 def calculate(query):
     results = []
-    # filter any special characters at start or end
-    query = re.sub(r'(^[*/=])|([+\-*/=(]$)', '', query)
-    query = handle_factorials(query)
-    query = handle_pow_xor(query)
-    query = handle_engineering_notation(query)
-    query = handle_implied_multiplication(query)
     try:
-        result = eval(query)
-        formatted = format_result(result)
-        results.append(json_wox(formatted,
-                                '{} = {}'.format(query, result),
+        result = math_parser.evaluate(query, {'x': x})
+    except Exception as err:
+        err_text = traceback.format_exc()
+        results.append(json_wox(f"Error: {type(err)}",
+                                "err_text",
                                 'icons/app.png',
                                 'change_query',
-                                [str(result)],
+                                [err_text],
                                 True))
-
-        try:
-            v = math_parser.evaluate(query, {'x': x})
-        except Exception as err:
-            err_text = traceback.format_exc()
-            results.append(json_wox(f"Error: {type(err)}",
-                                    err_text,
-                                    'icons/app.png',
-                                    'change_query',
-                                    err_text,
-                                    True))
-        else:
-            results.append(json_wox(to_eng(v),
-                                    '{} = {}'.format(query, to_eng(result)),
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
-    except SyntaxError:
-        # try to close parentheses
-        opening_par = query.count('(')
-        closing_par = query.count(')')
-        if opening_par > closing_par:
-            return calculate(query + ')'*(opening_par-closing_par))
-        else:
-            err_text = traceback.format_exc()
-            results.append(json_wox(f"Error: {type(err)}",
-                                    err_text,
-                                    'icons/app.png',
-                                    'change_query',
-                                    err_text,
-                                    True))
-    except NameError:
-        # try to find docstrings for methods similar to query
-        glob = set(filter(lambda x: 'Error' not in x and 'Warning' not in x and '_' not in x, globals()))
-        help = list(sorted(filter(lambda x: query in x, glob)))[:6]
-        for method in help:
-            method_eval = eval(method)
-            method_help = method_eval.__doc__.split('\n')[0] if method_eval.__doc__ else ''
-            results.append(json_wox(method,
-                                    method_help,
-                                    'icons/app.png',
-                                    'change_query_method',
-                                    [str(method)],
-                                    True))
-        if not help:
-            # let Wox keep previous result
-            raise NameError
+    else:
+        results.append(json_wox(to_eng(result),
+                                '{} = {}'.format(query, to_eng(result)),
+                                'icons/app.png',
+                                'store_result',
+                                [query, str(result)],
+                                True))
     return results
 
 

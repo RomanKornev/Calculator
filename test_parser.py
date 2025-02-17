@@ -51,6 +51,7 @@ class TestMathExpressionParser(unittest.TestCase):
         self.assertEqual(parsed, expected)
 
     def test_parallels(self):
+        self.assertEqual("(45*45/(45+45))", str(Parser("45//45").parse()))
         self.assertEqual("(45*34/(34+45))", str(Parser("45//34").parse()))
         self.assertEqual("(45*34*12/(34*12+45*12+45*34))", str(Parser("45//34//12").parse()))
 

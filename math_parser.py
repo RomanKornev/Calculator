@@ -19,7 +19,7 @@ class Node:
                 return f"{self.op}({arg_str})"
         if self.op == "//":
             den = '*'.join(f"{p}" for p in self.operands)
-            div = '+'.join('*'.join(f'{q}' for q in self.operands if q != p) for p in self.operands)
+            div = '+'.join('*'.join(f'{q}' for j, q in enumerate(self.operands) if j != i) for i, p in enumerate(self.operands))
             out = f"({den}/({div}))"
             return out
         if self.op == "^" and len(self.operands) == 2:

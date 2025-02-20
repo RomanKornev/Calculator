@@ -53,13 +53,23 @@ class Parser:
             if t in self.OPERATORS:
                 processed_tokens.append(t)
             elif t in self.CONSTANTS:
+                if i > 0 and isinstance(processed_tokens[-1], (int, float)):  # numbers before constants taken as *
+                    processed_tokens.append("*")
                 processed_tokens.append(self.CONSTANTS[t])
+            elif re.match(r'\d+$', t):
+                processed_tokens.append(int(t))
+            elif re.match(r'(0x[0-9A-F]+)|([0-9A-F]+H)$', t, re.IGNORECASE):
+                processed_tokens.append((int(t, 16)))
+            elif re.match(r'0b[01]+$', t, re.IGNORECASE):
+                processed_tokens.append((int(t, 2)))
             elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]$', t):
                 value, prefix = float(t[:-1]), t[-1]
                 processed_tokens.append(value * self.ENGINEERING_PREFIXES[prefix])
             elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?$', t):
                 processed_tokens.append(t)
             else:
+                if i > 0 and isinstance(processed_tokens[-1], (int, float)):  # numbers before functions taken as *
+                    processed_tokens.append("*")
                 processed_tokens.append(t)
         return processed_tokens
 
@@ -72,14 +82,10 @@ class Parser:
 
         while self.index < len(self.tokens):
             op = self.tokens[self.index]
-            if op not in self.OPERATORS:
-                op = '*'
-                operands.append(op)
-            else:
-                if op == "!":  # Factorial operator (unary)
-                    self.index += 1
-                    operands[-1] = Node("factorial", [operands[-1]])
-                    continue
+            if op == "!":  # Factorial operator (unary)
+                self.index += 1
+                operands[-1] = Node("factorial", [operands[-1]])
+                continue
 
             precedence = self.get_precedence(op)
             if precedence < min_precedence or op == ")":

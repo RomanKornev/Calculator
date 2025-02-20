@@ -47,7 +47,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
+        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:
@@ -58,7 +58,7 @@ class Parser:
                 processed_tokens.append(self.CONSTANTS[t])
             elif re.match(r'\d+$', t):
                 processed_tokens.append(int(t))
-            elif re.match(r'(0x[0-9A-F]+)|([0-9A-F]+H)$', t, re.IGNORECASE):
+            elif re.match(r'0x[0-9A-F]+$', t, re.IGNORECASE):
                 processed_tokens.append((int(t, 16)))
             elif re.match(r'0b[01]+$', t, re.IGNORECASE):
                 processed_tokens.append((int(t, 2)))

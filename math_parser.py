@@ -40,6 +40,7 @@ class Parser:
                  'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
                  'log': math.log, 'ln': math.log, 'log10': math.log10,
                  'sqr': math.sqrt, 'sqrt': math.sqrt, 'factorial': math.factorial,
+                 'abs': abs, 'round': round, 'floor': math.floor, 'ceil': math.ceil,
                  }
 
     def __init__(self, expression: str):
@@ -47,7 +48,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
+        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:
@@ -62,6 +63,8 @@ class Parser:
                 processed_tokens.append((int(t, 16)))
             elif re.match(r'0b[01]+$', t, re.IGNORECASE):
                 processed_tokens.append((int(t, 2)))
+            elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?j$', t):
+                processed_tokens.append(complex(t))
             elif re.match(r'\d*\.?\d+(?:[eE][+-]?\d+)?[fpnumkMGT]$', t):
                 value, prefix = float(t[:-1]), t[-1]
                 processed_tokens.append(value * self.ENGINEERING_PREFIXES[prefix])

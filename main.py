@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import math
 import os
 import traceback
 
@@ -121,12 +122,42 @@ def calculate(query):
                                 [err_text],
                                 True))
     else:
-        results.append(json_wox(to_eng(result),
+        if isinstance(result, float):
+            results.append(json_wox(to_eng(result),
                                 '{} = {}'.format(query, to_eng(result)),
                                 'icons/app.png',
                                 'store_result',
                                 [query, str(result)],
                                 True))
+        elif isinstance(result, int):
+            results.append(json_wox(to_eng(result),
+                                    '{} = {}'.format(query, result),
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
+            # Format as hex
+            results.append(json_wox(to_eng(result),
+                                    '{} = {:X}'.format(query, result),
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
+        elif isinstance(result, complex):
+            results.append(json_wox(to_eng(result),
+                                    '{} = {}'.format(query, result),
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
+            # Format as hex
+            results.append(json_wox(to_eng(result),
+                                    '{} = {}:{}º'.format(query, abs(result), math.degrees(result)),
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
+
     return results
 
 
@@ -138,7 +169,11 @@ class Calculator(Wox):
         return calculate(query)
 
     def context_menu(self, data):
-        return ["Teste", 555]
+        return [{
+            "Title": "Context menu entry",
+            "SubTitle": "Data: {}".format(data),
+            "IcoPath": "icons/app.png"
+        }]
 
     def change_query(self, query):
         # change query and copy to clipboard after pressing enter

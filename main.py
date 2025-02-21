@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-import math
 import os
 import traceback
 
 try:
     import pyperclip
-except:
+except ImportError:
     pyperclip = None
 
 import math_parser
-from math import floor, log
 
 x = None
 
@@ -26,9 +24,13 @@ if x is None:
         try:
             with open(xFilePath, "r") as xFile:
                 x = float(xFile.read())
-        except:
+        except FileNotFoundError:
             x = 0
 
+
+# TODO: Implement ** and % operators
+# TODO: Implement storing of variables
+#
 
 def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
     json = {
@@ -57,6 +59,7 @@ def copy_to_clipboard(text):
 
 
 def write_to_x(result):
+    global x
     x = result
     try:
         with open(xFilePath, "w") as xFile:
@@ -66,7 +69,14 @@ def write_to_x(result):
 
 
 def to_eng(value):
-    e = floor(log(abs(value), 1000))
+    e = 0
+    p = 1
+    while p < value:
+        e += 1
+        p *= 1000
+    while p > value:
+        e -= 1
+        p /= 1000
     if -5 <= e < 0:
         suffix = "fpnum"[e]
     elif e == 0:
@@ -79,7 +89,7 @@ def to_eng(value):
         suffix = 'Giga'
     else:
         return '{:E}'.format(value)
-    return '{:g}{:}'.format(value * 1000**-e, suffix)
+    return '{:g}{:}'.format(value * 1000 ** -e, suffix)
 
 
 def format_result(result):
@@ -97,6 +107,7 @@ def format_result(result):
         try:
             return '[' + ', '.join(list(map(format_result, list(result)))) + ']'
         except TypeError:
+            import numpy as np
             # check if ndarray
             result = result.flatten()
             if len(result) > 1:
@@ -113,6 +124,8 @@ def calculate(query):
     results = []
     try:
         result = math_parser.evaluate(query, {'x': x})
+    except NameError or SyntaxError:
+        pass
     except Exception as err:
         err_text = traceback.format_exc()
         results.append(json_wox(f"Error: {type(err)}",
@@ -123,36 +136,42 @@ def calculate(query):
                                 True))
     else:
         if isinstance(result, float):
+            fmt = "{:,}".format(result).replace(',', ' ')
             results.append(json_wox(to_eng(result),
-                                '{} = {}'.format(query, to_eng(result)),
-                                'icons/app.png',
-                                'store_result',
-                                [query, str(result)],
-                                True))
+                                    f'{query} = {fmt}',
+                                    'icons/app.png',
+                                    'store_result',
+                                    [query, str(result)],
+                                    True))
         elif isinstance(result, int):
-            results.append(json_wox(to_eng(result),
+            results.append(json_wox(result,
                                     '{} = {}'.format(query, result),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
                                     True))
             # Format as hex
-            results.append(json_wox(to_eng(result),
-                                    '{} = {:X}'.format(query, result),
+            hex_res = '{:X}'.format(result)
+            results.append(json_wox(hex_res,
+                                    '{} = {}'.format(query, hex_res),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
                                     True))
         elif isinstance(result, complex):
-            results.append(json_wox(to_eng(result),
-                                    '{} = {}'.format(query, result),
+            from math import atan2, degrees
+            complex_repr = '{}'.format(result)
+            results.append(json_wox(complex_repr,
+                                    '{} = {}'.format(query, complex_repr),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
                                     True))
             # Format as hex
-            results.append(json_wox(to_eng(result),
-                                    '{} = {}:{}º'.format(query, abs(result), math.degrees(result)),
+            deg = degrees(atan2(result.imag, result.real))
+            complex_repr1 = '|{}|<{}>deg'.format(abs(result), deg)
+            results.append(json_wox(complex_repr1,
+                                    '{} = {}'.format(query, complex_repr1),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],

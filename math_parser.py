@@ -35,7 +35,7 @@ class Parser:
     CONSTANTS = {'e': math.e, 'pi': math.pi}
     OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "//"}
     FUNCTIONS = {'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'cotg': lambda x: math.cos(x)/math.sin(x),
-                 'asin': math.asin, 'acos': math.acos, 'atan': math.atan,
+                 'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
                  'sinh': math.sinh, 'cosh': math.cosh, 'tanh': math.tanh,
                  'asinh': math.asinh, 'acosh': math.acosh, 'atanh': math.atanh,
                  'log': math.log, 'ln': math.log, 'log10': math.log10,
@@ -48,7 +48,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]+|//|[+\-*/^(),!]', expr)
+        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]\w*|//|[+\-*/^(),!]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:

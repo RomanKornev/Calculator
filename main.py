@@ -123,7 +123,7 @@ def calculate(query):
                 "ContextData": result,
                 "JsonRPCAction": {
                     'method': 'change_query',
-                    'parameters': [fmt],
+                    'parameters': [str(result)],
                     'dontHideAfterAction': True
                 }
             })
@@ -136,7 +136,7 @@ def calculate(query):
                 "ContextData": result,
                 "JsonRPCAction": {
                     'method': 'change_query',
-                    'parameters': [fmt],
+                    'parameters': [str(result)],
                     'dontHideAfterAction': True
                 }
             })

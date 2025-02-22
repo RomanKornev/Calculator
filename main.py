@@ -25,11 +25,14 @@ if x is None:
         try:
             with open(xFilePath, "r") as xFile:
                 x = float(xFile.read())
-        except FileNotFoundError:
+        except:
             x = 0
 
 
 # TODO: Implement storing of variables. Eliminates = operators
+# TODO: Implement the help function
+# TODO: Implement the XOR operator that existed on previous version
+# TODO: Storing configurations such as formatting precision, preferred copy to clipboard format
 
 def write_to_x(result):
     global x

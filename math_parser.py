@@ -32,8 +32,13 @@ class Node:
             div = '+'.join('*'.join(f'{q}' for j, q in enumerate(self.operands) if j != i) for i, p in enumerate(self.operands))
             out = f"({den}/({div}))"
             return out
-        if self.op == "^" or self.op == "**" and len(self.operands) == 2:
-            return "({0}**{1})".format(*self.operands)
+        if self.op == "**":
+            # Power of power is always made on the first operand. X^Y^Z = (X^Y)^Z = X^(Y*Z)
+            if len(self.operands) > 2:
+                exponent = '*'.join(f'{x}' for x in self.operands[1:])
+                return f"({self.operands[0]}**({exponent}))"
+            else:
+                return f"({self.operands[0]}**{self.operands[1]})"
         if self.op == "apply_pct" and len(self.operands) == 2:
             y = str(self.operands[1])
             if y.startswith('-'):
@@ -50,7 +55,7 @@ class Parser:
         'k': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12
     }
     CONSTANTS = {'e': math.e, 'pi': math.pi}
-    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "%"}
+    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "%", "&"}
     FUNCTIONS = {'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'cotg': lambda x: math.cos(x)/math.sin(x),
                  'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
                  'sinh': math.sinh, 'cosh': math.cosh, 'tanh': math.tanh,
@@ -66,7 +71,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]\w*|[+\-*/^(),!%]', expr)
+        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]\w*|[+\-*/^&(),!%]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:
@@ -109,10 +114,11 @@ class Parser:
                 operands[-1] = Node("factorial", [operands[-1]])
                 continue
 
-            # Test for double operators like ** or //
-            elif (op == '*' or op == '/' or op == '*') and \
+            # Test for double operators like ** ; // or
+            elif (op == '*' or op == '/' or op == '^') and \
                     self.index + 1 < len(self.tokens) and self.tokens[self.index+1] == op:
-                op += self.tokens[self.index+1]
+                if op != '^':
+                    op += self.tokens[self.index+1]
                 longer_operator += 1
 
             # Test for the %
@@ -127,6 +133,9 @@ class Parser:
                 else:
                     # if x % y then apply the python's remainder operator
                     pass  # don't need to do anything
+
+            elif op == '^':
+                op = '**'
 
             precedence = self.get_precedence(op)
             if precedence < min_precedence or op == ")":
@@ -195,7 +204,12 @@ class Parser:
         return token
 
     def get_precedence(self, op):
-        precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "//": 2, "^": 3, "**": 3, "!": 4, "%": 4 }  # Factorial has high precedence
+        precedences = {
+            "+": 1, "-": 1,
+            "*": 2, "/": 2, "//": 2, "^": 2, "&": 2,
+            "**": 3,
+            "!": 4, "%": 4    # Factorial and percentage has high precedence
+        }  # Factorial has high precedence
         return precedences.get(op, 0)
 
 

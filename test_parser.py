@@ -79,6 +79,11 @@ class TestMathExpressionParser(unittest.TestCase):
         self._test_parser("3+11+2%", "(3 + (11 * (1 + (2/100))))")
         self._test_parser("5-11*2%", "(5 - (11 * (2/100)))")
 
+    def test_bitwise_operators(self):
+        self._test_parser("5&1", "(5 & 1)")
+        self._test_parser("5^^1", "(5 ^ 1)")
+        self._test_parser("1+5&1", "(1 + (5 & 1))")
+
 
 if __name__ == "__main__":
     unittest.main()

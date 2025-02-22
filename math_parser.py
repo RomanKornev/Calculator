@@ -3,6 +3,14 @@ import math
 from typing import Union, List
 
 
+def pct(x):
+    return x/100
+
+
+def apply_pct(x, y):
+    return x * (1 + y / 100)
+
+
 class Node:
     def __init__(self, op: str, operands: List[Union['Node', float, str]]):
         self.op = op
@@ -13,6 +21,8 @@ class Node:
             arg_str = f"{self.operands[0]}"
             if self.op == '-':
                 return self.op + arg_str
+            elif self.op == 'pct':
+                return f"({arg_str}/100)"
             if arg_str.startswith('(') and arg_str.endswith(')'):
                 return self.op + arg_str.replace(' , ', ', ')  # These are functions
             else:
@@ -22,8 +32,15 @@ class Node:
             div = '+'.join('*'.join(f'{q}' for j, q in enumerate(self.operands) if j != i) for i, p in enumerate(self.operands))
             out = f"({den}/({div}))"
             return out
-        if self.op == "^" and len(self.operands) == 2:
+        if self.op == "^" or self.op == "**" and len(self.operands) == 2:
             return "({0}**{1})".format(*self.operands)
+        if self.op == "apply_pct" and len(self.operands) == 2:
+            y = str(self.operands[1])
+            if y.startswith('-'):
+                return f"({self.operands[0]} * (1 - {y[1:]}))"
+            else:
+                return "({0} * (1 + {1}))".format(*self.operands)
+
         return f"({f' {self.op} '.join(map(str, self.operands))})"
 
 
@@ -33,7 +50,7 @@ class Parser:
         'k': 1e3, 'M': 1e6, 'G': 1e9, 'T': 1e12
     }
     CONSTANTS = {'e': math.e, 'pi': math.pi}
-    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "//"}
+    OPERATORS = {"+", "-", "*", "/", "^", "(", ")", ",", "!", "%"}
     FUNCTIONS = {'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'cotg': lambda x: math.cos(x)/math.sin(x),
                  'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
                  'sinh': math.sinh, 'cosh': math.cosh, 'tanh': math.tanh,
@@ -41,6 +58,7 @@ class Parser:
                  'log': math.log, 'ln': math.log, 'log10': math.log10,
                  'sqr': math.sqrt, 'sqrt': math.sqrt, 'factorial': math.factorial,
                  'abs': abs, 'round': round, 'floor': math.floor, 'ceil': math.ceil,
+                 'pct': pct, 'apply_pct': apply_pct,
                  }
 
     def __init__(self, expression: str):
@@ -48,7 +66,7 @@ class Parser:
         self.index = 0
 
     def tokenize(self, expr: str):
-        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]\w*|//|[+\-*/^(),!]', expr)
+        tokens = re.findall(r'0x[0-9a-fA-F]+|0b[01]+|\d*\.?\d+(?:[eE][+-]?\d+)?[jfpnumkMGT]?|[a-zA-Z]\w*|[+\-*/^(),!%]', expr)
         processed_tokens = []
         for i, t in enumerate(tokens):
             if t in self.OPERATORS:
@@ -84,11 +102,31 @@ class Parser:
         current_op = None
 
         while self.index < len(self.tokens):
+            longer_operator = 0
             op = self.tokens[self.index]
             if op == "!":  # Factorial operator (unary)
                 self.index += 1
                 operands[-1] = Node("factorial", [operands[-1]])
                 continue
+
+            # Test for double operators like ** or //
+            elif (op == '*' or op == '/' or op == '*') and \
+                    self.index + 1 < len(self.tokens) and self.tokens[self.index+1] == op:
+                op += self.tokens[self.index+1]
+                longer_operator += 1
+
+            # Test for the %
+            elif op == "%":
+                next_token = self.tokens[self.index + 1] if self.index + 1 < len(self.tokens) else None
+                # if x% or x% <operator> or x%) then
+                if next_token is None or next_token in self.OPERATORS or next_token == ')':
+                    #  divide the x by 100
+                    operands[-1] = Node('pct', [operands[-1]])
+                    self.index += 1
+                    continue
+                else:
+                    # if x % y then apply the python's remainder operator
+                    pass  # don't need to do anything
 
             precedence = self.get_precedence(op)
             if precedence < min_precedence or op == ")":
@@ -104,10 +142,23 @@ class Parser:
                 else:
                     raise NotImplemented  # This should not be possible. Just a safe guard.
 
-            self.index += 1
+            self.index += 1 + longer_operator
             if self.index < len(self.tokens):
                 operands.append(self.parse_expression(precedence + 1))
 
+        if len(operands) >= 2 and current_op == '+' or current_op == '-':
+            # Check if any argument is a percentage. If so, then apply percentage to the argument on the left
+            i = 1
+            while i < len(operands):
+                if isinstance(operands[i], Node) and operands[i].op == 'pct':
+                    # replace the addition by an apply percentage
+                    if current_op == '-':
+                        # invert the sign of the percentage to apply
+                        operands[i] = Node('-', [operands[i]])
+                    operands[i-1] = Node('apply_pct', [operands[i-1], operands[i]])
+                    del operands[i]
+                else:
+                    i += 1
         if len(operands) == 1:
             return operands[0]
         return Node(current_op, operands)
@@ -144,17 +195,17 @@ class Parser:
         return token
 
     def get_precedence(self, op):
-        precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "//": 2, "^": 3, "!": 4}  # Factorial has high precedence
+        precedences = {"+": 1, "-": 1, "*": 2, "/": 2, "//": 2, "^": 3, "**": 3, "!": 4, "%": 4 }  # Factorial has high precedence
         return precedences.get(op, 0)
 
 
-def evaluate(equation: str, environment: dict = None) -> float:
+def evaluate(equation: str, environment: dict = None):
     parser = Parser(equation)
     ast = parser.parse()
     env = {}
     env.update(Parser.FUNCTIONS)
     env.update(environment)
-    return eval(str(ast), env)
+    return eval(str(ast), env), ast
 
 
 if __name__ == "__main__":

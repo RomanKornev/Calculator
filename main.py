@@ -29,8 +29,8 @@ if x is None:
 
 
 # TODO: Implement ** and % operators
-# TODO: Implement storing of variables
-#
+# TODO: Implement storing of variables. Eliminates = operators
+
 
 def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
     json = {
@@ -89,7 +89,7 @@ def to_eng(value):
         suffix = 'Giga'
     else:
         return '{:E}'.format(value)
-    return '{:g}{:}'.format(value * 1000 ** -e, suffix)
+    return '{:g}{:}'.format(value * 1000**-e, suffix)
 
 
 def format_result(result):
@@ -123,7 +123,7 @@ def format_result(result):
 def calculate(query):
     results = []
     try:
-        result = math_parser.evaluate(query, {'x': x})
+        result, expression = math_parser.evaluate(query, {'x': x})
     except NameError or SyntaxError:
         pass
     except Exception as err:
@@ -138,14 +138,14 @@ def calculate(query):
         if isinstance(result, float):
             fmt = "{:,}".format(result).replace(',', ' ')
             results.append(json_wox(to_eng(result),
-                                    f'{query} = {fmt}',
+                                    f'{expression} = {fmt}',
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
                                     True))
         elif isinstance(result, int):
             results.append(json_wox(result,
-                                    '{} = {}'.format(query, result),
+                                    '{} = {}'.format(expression, result),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
@@ -153,7 +153,7 @@ def calculate(query):
             # Format as hex
             hex_res = '{:X}'.format(result)
             results.append(json_wox(hex_res,
-                                    '{} = {}'.format(query, hex_res),
+                                    '{} = {}'.format(expression, hex_res),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
@@ -162,7 +162,7 @@ def calculate(query):
             from math import atan2, degrees
             complex_repr = '{}'.format(result)
             results.append(json_wox(complex_repr,
-                                    '{} = {}'.format(query, complex_repr),
+                                    '{} = {}'.format(expression, complex_repr),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
@@ -171,10 +171,17 @@ def calculate(query):
             deg = degrees(atan2(result.imag, result.real))
             complex_repr1 = '|{}|<{}>deg'.format(abs(result), deg)
             results.append(json_wox(complex_repr1,
-                                    '{} = {}'.format(query, complex_repr1),
+                                    '{} = {}'.format(expression, complex_repr1),
                                     'icons/app.png',
                                     'store_result',
                                     [query, str(result)],
+                                    True))
+        else:
+            results.append(json_wox(f"Error: {type(result)}",
+                                    '{} = {}'.format(expression, result),
+                                    'icons/app.png',
+                                    'change_query',
+                                    [results],
                                     True))
 
     return results

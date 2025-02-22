@@ -192,7 +192,7 @@ class Calculator(Wox):
             results.append({
                 "Title": fmt.replace(',', ' '),
                 "SubTitle": 'Normal',
-                "IcoPath": "Icons/copy.png",
+                "IcoPath": "Images/copy.png",
                 "JsonRPCAction": {
                     'method': 'copy_to_clipboard',
                     'parameters': [fmt],
@@ -266,7 +266,7 @@ class Calculator(Wox):
                 results.append({
                     "Title": complex_repr,
                     "SubTitle": 'Complex Form',
-                    "IcoPath": "icons/app.png",
+                    "IcoPath": "Images/copy.png",
                     "JsonRPCAction": {
                         'method': 'change_query',
                         'parameters': [complex_repr],

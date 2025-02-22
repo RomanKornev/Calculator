@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import traceback
+from math import atan2, degrees
 
 try:
     import pyperclip
@@ -28,35 +29,7 @@ if x is None:
             x = 0
 
 
-# TODO: Implement ** and % operators
 # TODO: Implement storing of variables. Eliminates = operators
-
-
-def json_wox(title, subtitle, icon, action=None, action_params=None, action_keep=None):
-    json = {
-        'Title': title,
-        'SubTitle': subtitle,
-        'IcoPath': icon
-    }
-    if action and action_params and action_keep:
-        json.update({
-            'JsonRPCAction': {
-                'method': action,
-                'parameters': action_params,
-                'dontHideAfterAction': action_keep
-            }
-        })
-    return json
-
-
-def copy_to_clipboard(text):
-    if pyperclip is not None:
-        pyperclip.copy(text)
-    else:
-        # Workaround
-        cmd = 'echo ' + text.strip() + '| clip'
-        os.system(cmd)
-
 
 def write_to_x(result):
     global x
@@ -88,8 +61,14 @@ def to_eng(value):
     elif e == 3:
         suffix = 'Giga'
     else:
-        return '{:E}'.format(value)
-    return '{:g}{:}'.format(value * 1000**-e, suffix)
+        return f'{value:E}'
+    return f'{value * 1000 ** -e:g}{suffix:}'
+
+
+def divide_groups_4(s: str) -> str:
+    """Divides the text in segments of 4 characters separated by spaces. Division is right aligned."""
+    first_space = len(s) % 4
+    return s[:first_space] + " " + " ".join(s[i:i+4] for i in range(first_space, len(s), 4))
 
 
 def format_result(result):
@@ -100,9 +79,9 @@ def format_result(result):
         return result
     if isinstance(result, int) or isinstance(result, float):
         if int(result) == float(result):
-            return '{:,}'.format(int(result)).replace(',', ' ')
+            return f'{int(result):,}'.replace(',', ' ')
         else:
-            return '{:,}'.format(round(float(result), 5)).replace(',', ' ')
+            return f'{round(float(result), 5):,}'.replace(',', ' ')
     elif hasattr(result, '__iter__'):
         try:
             return '[' + ', '.join(list(map(format_result, list(result)))) + ']'
@@ -128,61 +107,72 @@ def calculate(query):
         pass
     except Exception as err:
         err_text = traceback.format_exc()
-        results.append(json_wox(f"Error: {type(err)}",
-                                err_text,
-                                'icons/app.png',
-                                'change_query',
-                                [err_text],
-                                True))
+        results.append({
+            "Title": f"Error: {type(err)}",
+            "SubTitle": err_text,
+            "IcoPath": "icons/app.png",
+        })
     else:
         if isinstance(result, float):
-            fmt = "{:,}".format(result).replace(',', ' ')
-            results.append(json_wox(to_eng(result),
-                                    f'{expression} = {fmt}',
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
+            fmt = f"{result:,}".replace(',', ' ')
+            eng_repr = to_eng(result)
+            results.append({
+                "Title": fmt,
+                "SubTitle": f'{expression} = {eng_repr}',
+                "IcoPath": "icons/app.png",
+                "ContextData": result,
+                "JsonRPCAction": {
+                    'method': 'change_query',
+                    'parameters': [fmt],
+                    'dontHideAfterAction': True
+                }
+            })
         elif isinstance(result, int):
-            results.append(json_wox(result,
-                                    '{} = {}'.format(expression, result),
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
-            # Format as hex
-            hex_res = '{:X}'.format(result)
-            results.append(json_wox(hex_res,
-                                    '{} = {}'.format(expression, hex_res),
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
+            fmt = f"{result:,}".replace(',', ' ')
+            results.append({
+                "Title": fmt,
+                "SubTitle": f'{expression} = {result}',
+                "IcoPath": "icons/app.png",
+                "ContextData": result,
+                "JsonRPCAction": {
+                    'method': 'change_query',
+                    'parameters': [fmt],
+                    'dontHideAfterAction': True
+                }
+            })
         elif isinstance(result, complex):
-            from math import atan2, degrees
-            complex_repr = '{}'.format(result)
-            results.append(json_wox(complex_repr,
-                                    '{} = {}'.format(expression, complex_repr),
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
-            # Format as hex
+            complex_repr = f'{result}'
+            results.append({
+                "Title": complex_repr,
+                "SubTitle": f'{expression} = {complex_repr}',
+                "IcoPath": "icons/app.png",
+                "ContextData": complex_repr,
+                "JsonRPCAction": {
+                    'method': 'change_query',
+                    'parameters': [complex_repr],
+                    'dontHideAfterAction': True
+                }
+            })
+            # Format as magnitude and angle
             deg = degrees(atan2(result.imag, result.real))
-            complex_repr1 = '|{}|<{}>deg'.format(abs(result), deg)
-            results.append(json_wox(complex_repr1,
-                                    '{} = {}'.format(expression, complex_repr1),
-                                    'icons/app.png',
-                                    'store_result',
-                                    [query, str(result)],
-                                    True))
+            complex_repr1 = f'mag:{abs(result)} deg:{deg}'
+            results.append({
+                "Title": complex_repr1,
+                "SubTitle": f'{complex_repr} = {complex_repr1}',
+                "IcoPath": "icons/clip.png",
+                "JsonRPCAction": {
+                    'method': 'copy_to_clipboard',
+                    'parameters': [complex_repr1],
+                    'dontHideAfterAction': False
+                }
+            })
         else:
-            results.append(json_wox(f"Error: {type(result)}",
-                                    '{} = {}'.format(expression, result),
-                                    'icons/app.png',
-                                    'change_query',
-                                    [results],
-                                    True))
+            results.append({
+                "Title": f"Unknown Type {type(result)} : {result}",
+                "SubTitle": f'{expression} = {result}',
+                "IcoPath": "icons/app.png",
+                "ContextData": result
+            })
 
     return results
 
@@ -194,18 +184,138 @@ class Calculator(Wox):
     def query(self, query):
         return calculate(query)
 
-    def context_menu(self, data):
-        return [{
-            "Title": "Context menu entry",
-            "SubTitle": "Data: {}".format(data),
-            "IcoPath": "icons/app.png"
-        }]
+    def context_menu(self, result):
+        results = []
+        if isinstance(result, float):
+            fmt = f"{result:,}"
+            eng_repr = to_eng(result)
+            results.append({
+                "Title": fmt.replace(',', ' '),
+                "SubTitle": 'Normal',
+                "IcoPath": "Icons/copy.png",
+                "JsonRPCAction": {
+                    'method': 'copy_to_clipboard',
+                    'parameters': [fmt],
+                    'dontHideAfterAction': False,
+                }
+            })
+            if fmt != eng_repr:
+                results.append({
+                    "Title": eng_repr,
+                    "SubTitle": "Engineering",
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [eng_repr],
+                        'dontHideAfterAction': False,
+                    }
+                })
+        elif isinstance(result, int):
+            fmt = f"{result:,}".replace(',', ' ')
+            results.append({
+                "Title": fmt,
+                "SubTitle": 'Normal Representation',
+                "IcoPath": "Images/copy.png",
+                "JsonRPCAction": {
+                    'method': 'copy_to_clipboard',
+                    'parameters': [fmt],
+                    'dontHideAfterAction': False,
+                }
+            })
+            # Format as hex
+            hex_repr = f'0x{result:X}'
+            results.append({
+                "Title": divide_groups_4(hex_repr),
+                "SubTitle": 'Hexadecimal',
+                "IcoPath": "Images/copy.png",
+                "JsonRPCAction": {
+                    'method': 'copy_to_clipboard',
+                    'parameters': [hex_repr],
+                    'dontHideAfterAction': False,
+                }
+            })
+            if abs(result) < 2**32:
+                # Format as bin
+                bin_repr = f'0b{result:b}'
+                results.append({
+                    "Title": divide_groups_4(bin_repr),
+                    "SubTitle": 'Binary',
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [bin_repr],
+                        'dontHideAfterAction': False,
+                    }
+                })
+        elif isinstance(result, str):
+            try:
+                result = complex(result)
+            except ValueError:
+                results.append({
+                    "Title": result,
+                    "SubTitle": f"String",
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [result],
+                        'dontHideAfterAction': False
+                    }
+                })
+            else:
+                complex_repr = f'{result}'
+                results.append({
+                    "Title": complex_repr,
+                    "SubTitle": 'Complex Form',
+                    "IcoPath": "icons/app.png",
+                    "JsonRPCAction": {
+                        'method': 'change_query',
+                        'parameters': [complex_repr],
+                        'dontHideAfterAction': False,
+                    }
+                })
+                # Format as magnitude
+                mag = f"{abs(result)}"
+                results.append({
+                    "Title": f"{mag}",
+                    "SubTitle": f"|{result}| = {mag}",
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [mag],
+                        'dontHideAfterAction': False,
+                    }
+                })
+                rad = atan2(result.imag, result.real)
+                srad = f"{rad}"
+                results.append({
+                    "Title": f"{srad}",
+                    "SubTitle": f"angle({result}) = {srad} radians",
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [srad],
+                        'dontHideAfterAction': False,
+                    }
+                })
+                deg = degrees(rad)
+                sdeg = f"{deg}"
+                results.append({
+                    "Title": sdeg,
+                    "SubTitle": f"angle({result}) = {sdeg} degrees",
+                    "IcoPath": "Images/copy.png",
+                    "JsonRPCAction": {
+                        'method': 'copy_to_clipboard',
+                        'parameters': [sdeg],
+                        'dontHideAfterAction': False,
+                    }
+                })
+        return results
 
     def change_query(self, query):
         # change query and copy to clipboard after pressing enter
         WoxAPI.change_query(query)
         write_to_x(query)
-        copy_to_clipboard(query)
+        self.copy_to_clipboard(query)
 
     def change_query_method(self, query):
         WoxAPI.change_query(query + '(')
@@ -213,7 +323,15 @@ class Calculator(Wox):
     def store_result(self, query, result):
         WoxAPI.change_query(query)
         write_to_x(result)
-        copy_to_clipboard(result)
+        self.copy_to_clipboard(result)
+
+    def copy_to_clipboard(self, text):
+        if pyperclip is not None:
+            pyperclip.copy(text)
+        else:
+            # Workaround
+            cmd = 'echo ' + text.strip() + '| clip'
+            os.system(cmd)
 
 
 if __name__ == '__main__':
